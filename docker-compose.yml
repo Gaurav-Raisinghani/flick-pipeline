@@ -1,0 +1,266 @@
+services:
+
+  # --- Infrastructure ---
+
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: flik
+      POSTGRES_USER: flik
+      POSTGRES_PASSWORD: flik
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flik"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: flik
+      RABBITMQ_DEFAULT_PASS: flik
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # --- Application Services ---
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: flik-api-gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/flik
+      SPRING_DATASOURCE_USERNAME: flik
+      SPRING_DATASOURCE_PASSWORD: flik
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: flik
+      SPRING_RABBITMQ_PASSWORD: flik
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      RATE_LIMIT_REQUESTS_PER_SEC: 300
+      FLIK_REGION: us-east
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  api-gateway-region-b:
+    build:
+      context: .
+      dockerfile: flik-api-gateway/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/flik
+      SPRING_DATASOURCE_USERNAME: flik
+      SPRING_DATASOURCE_PASSWORD: flik
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: flik
+      SPRING_RABBITMQ_PASSWORD: flik
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      RATE_LIMIT_REQUESTS_PER_SEC: 300
+      FLIK_REGION: us-west
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker-text:
+    build:
+      context: .
+      dockerfile: flik-worker/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: text
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/flik
+      SPRING_DATASOURCE_USERNAME: flik
+      SPRING_DATASOURCE_PASSWORD: flik
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: flik
+      SPRING_RABBITMQ_PASSWORD: flik
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      WORKER_CONCURRENCY: 5
+      WORKER_VERSION: v1.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 2
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker-image:
+    build:
+      context: .
+      dockerfile: flik-worker/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: image
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/flik
+      SPRING_DATASOURCE_USERNAME: flik
+      SPRING_DATASOURCE_PASSWORD: flik
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: flik
+      SPRING_RABBITMQ_PASSWORD: flik
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      WORKER_CONCURRENCY: 5
+      WORKER_VERSION: v1.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 2
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker-video:
+    build:
+      context: .
+      dockerfile: flik-worker/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: video
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/flik
+      SPRING_DATASOURCE_USERNAME: flik
+      SPRING_DATASOURCE_PASSWORD: flik
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: flik
+      SPRING_RABBITMQ_PASSWORD: flik
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      WORKER_CONCURRENCY: 3
+      WORKER_VERSION: v1.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  autoscaler:
+    build:
+      context: .
+      dockerfile: flik-autoscaler/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
+      RABBITMQ_USERNAME: flik
+      RABBITMQ_PASSWORD: flik
+      DOCKER_HOST: unix:///var/run/docker.sock
+      AUTOSCALE_MIN_WORKERS: 2
+      AUTOSCALE_MAX_WORKERS: 10
+      AUTOSCALE_QUEUE_THRESHOLD: 100
+      AUTOSCALE_POLL_INTERVAL_MS: 5000
+      AUTOSCALE_BUDGET_PER_HOUR: 50.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # --- Observability ---
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api-gateway
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/flik-overview.json
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:

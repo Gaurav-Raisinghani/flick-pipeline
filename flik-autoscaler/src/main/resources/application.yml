@@ -1,0 +1,35 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: flik-autoscaler
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+rabbitmq:
+  management-url: ${RABBITMQ_MANAGEMENT_URL:http://localhost:15672}
+  username: ${RABBITMQ_USERNAME:flik}
+  password: ${RABBITMQ_PASSWORD:flik}
+
+autoscale:
+  min-workers: ${AUTOSCALE_MIN_WORKERS:2}
+  max-workers: ${AUTOSCALE_MAX_WORKERS:10}
+  queue-threshold: ${AUTOSCALE_QUEUE_THRESHOLD:100}
+  poll-interval-ms: ${AUTOSCALE_POLL_INTERVAL_MS:5000}
+  budget-per-hour: ${AUTOSCALE_BUDGET_PER_HOUR:50.0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  metrics:
+    tags:
+      application: flik-autoscaler
+
+logging:
+  level:
+    com.flik: INFO

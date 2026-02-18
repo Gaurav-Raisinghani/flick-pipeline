@@ -1,0 +1,51 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: flik-worker
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/flik
+    username: flik
+    password: flik
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: flik
+    password: flik
+    listener:
+      simple:
+        prefetch: 1
+        acknowledge-mode: manual
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+worker:
+  concurrency: ${WORKER_CONCURRENCY:5}
+  version: ${WORKER_VERSION:v1.0.0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  metrics:
+    distribution:
+      percentiles-histogram:
+        flik.task.processing.seconds: true
+    tags:
+      application: flik-worker
+
+logging:
+  level:
+    com.flik: INFO

@@ -1,0 +1,13 @@
+**/target/
+**/.idea/
+**/.vscode/
+**/*.iml
+**/node_modules/
+*.md
+docs/
+scripts/
+grafana/
+prometheus/
+load-test-results/
+.git/
+.gitignore
