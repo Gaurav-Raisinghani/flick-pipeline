@@ -322,3 +322,12 @@ Actual performance data from running all 7 Gatling simulations against the full 
 | **Canary** | 61,650 | 100% | 8ms | 195 req/s | PASS |
 
 All assertions passed. Interactive HTML reports with detailed request timelines, latency distributions, and error breakdowns are generated in `flik-load-test/target/gatling/` when running each simulation.
+
+---
+
+## Artifacts
+
+Pre-captured evidence is available in the `load-test-results/` directory:
+
+- **Gatling report PDFs:** `Baseline.pdf`, `Burst.pdf`, `canary.pdf`, `Chaos.pdf`, `dag.pdf`, `fairness.pdf`, `multiregion.pdf`
+- **Grafana dashboard screenshots:** `grafana1.png`, `grafana2.png`, `grafana3.png`

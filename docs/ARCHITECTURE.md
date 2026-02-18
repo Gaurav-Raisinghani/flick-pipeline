@@ -1521,7 +1521,7 @@ An interactive picker will prompt you to choose a simulation by number (0 = Base
 
 Reports are generated in `flik-load-test/target/gatling/` with interactive HTML dashboards showing request/response timelines, latency distributions, and error breakdowns.
 
-**Actual results data** from running all 7 simulations (request counts, p50/p95/p99 latency, success rates, analysis) is available in [LOAD-TEST-RESULTS.md](LOAD-TEST-RESULTS.md).
+**Actual results data** from running all 7 simulations (request counts, p50/p95/p99 latency, success rates, analysis) is available in [LOAD-TEST-RESULTS.md](LOAD-TEST-RESULTS.md). Pre-captured Gatling report PDFs and Grafana dashboard screenshots are in `load-test-results/`.
 
 ---
 
