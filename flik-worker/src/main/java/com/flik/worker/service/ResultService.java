@@ -13,6 +13,8 @@ import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.persistence.EntityManager;
 import java.time.Duration;
@@ -44,7 +46,7 @@ public class ResultService {
             task.setStatus(TaskStatus.PROCESSING);
             entityManager.merge(task);
         }
-        publishStatus(taskId, "PROCESSING", null, null);
+        publishAfterCommit(taskId, "PROCESSING", null, null);
     }
 
     @Transactional
@@ -58,7 +60,7 @@ public class ResultService {
             entityManager.merge(task);
         }
 
-        publishStatus(taskId, "COMPLETED", resultJson, null);
+        publishAfterCommit(taskId, "COMPLETED", resultJson, null);
 
         Counter.builder("flik_tasks_completed_total")
                 .tag("type", taskType)
@@ -84,7 +86,7 @@ public class ResultService {
             entityManager.merge(task);
         }
 
-        publishStatus(taskId, "FAILED", null, error);
+        publishAfterCommit(taskId, "FAILED", null, error);
 
         Counter.builder("flik_tasks_completed_total")
                 .tag("type", taskType)
@@ -106,7 +108,7 @@ public class ResultService {
             entityManager.merge(task);
         }
 
-        publishStatus(taskId, "DEAD_LETTERED", null, error);
+        publishAfterCommit(taskId, "DEAD_LETTERED", null, error);
 
         Counter.builder("flik_tasks_completed_total")
                 .tag("type", taskType)
@@ -114,6 +116,15 @@ public class ResultService {
                 .register(meterRegistry).increment();
 
         log.error("Task dead-lettered: taskId={}, type={}, error={}", taskId, taskType, error);
+    }
+
+    private void publishAfterCommit(UUID taskId, String status, String result, String error) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                publishStatus(taskId, status, result, error);
+            }
+        });
     }
 
     private void publishStatus(UUID taskId, String status, String result, String error) {

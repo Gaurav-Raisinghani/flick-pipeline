@@ -24,4 +24,8 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     @Query("SELECT t FROM Task t WHERE t.dagId = :dagId ORDER BY t.createdAt ASC")
     List<Task> findDagTasks(UUID dagId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.cost = :cost WHERE t.id = :taskId")
+    void updateCost(UUID taskId, double cost);
 }
